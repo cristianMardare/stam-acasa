@@ -4,6 +4,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
+using StamAcasa.EmailService.EmailBuilder;
 
 namespace StamAcasa.EmailService
 {
@@ -19,6 +20,7 @@ namespace StamAcasa.EmailService
                 .ConfigureServices((hostContext, services) =>
                 {
                     services.AddHostedService<Worker>();
+                    services.AddTransient<IEmailBuilderService, EmailBuilderService>();
                 });
     }
 }
