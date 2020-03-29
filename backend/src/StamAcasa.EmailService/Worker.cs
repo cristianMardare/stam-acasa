@@ -6,6 +6,7 @@ using System.Threading.Tasks;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using StamAcasa.EmailService.EmailBuilder;
+using StamAcasa.EmailService.Mailing;
 using StamAcasa.EmailService.Subscriber;
 
 namespace StamAcasa.EmailService
@@ -14,13 +15,15 @@ namespace StamAcasa.EmailService
     {
         private readonly ISubscriber _subscriber;
         private readonly IEmailBuilderService _emailBuilder;
+        private readonly ISender _emailSender;
         private readonly ILogger<Worker> _logger;
 
-        public Worker(ISubscriber subscriber, IEmailBuilderService emailBuilder, ILogger<Worker> logger)
+        public Worker(ISubscriber subscriber, IEmailBuilderService emailBuilder, ISender emailSender, ILogger<Worker> logger)
         {
             _subscriber = subscriber ??
                 throw new ArgumentNullException(nameof(subscriber));
             _emailBuilder = emailBuilder;
+            _emailSender = emailSender;
             _logger = logger;
         }
 
@@ -30,9 +33,22 @@ namespace StamAcasa.EmailService
 
             _subscriber.Subscribe("email:requests", async (request) =>
             {
-                var email = await _emailBuilder.BuildEmail(request);
+                try
+                {
+                    var email = await _emailBuilder.BuildEmail(request);
 
-                _logger.LogInformation($"TO: {email.Address}; Subject: {email.Subject}; Content: {email.Content}");
+
+                    _logger.LogInformation($"TO: {email.Address}; Subject: {email.Subject}; Content: {email.Content}; Status: sending");
+
+                    await _emailSender.SendAsync(email, cancellationToken);
+
+                    _logger.LogInformation($"TO: {email.Address}; Subject: {email.Subject}; Content: {email.Content}; Status: sent");
+                }
+
+                catch (Exception ex)
+                {
+                    _logger.LogError(ex, ex.Message);
+                }
             });
 
             return base.StartAsync(cancellationToken);
