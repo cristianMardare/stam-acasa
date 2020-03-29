@@ -7,21 +7,23 @@ using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using StamAcasa.EmailService.EmailBuilder;
 using StamAcasa.EmailService.Mailing;
-using StamAcasa.EmailService.Subscriber;
+using StamAcasa.EmailService.Messaging;
 
 namespace StamAcasa.EmailService
 {
     public class Worker : BackgroundService
     {
-        private readonly ISubscriber _subscriber;
+        private readonly IQueueSubscriber _queue;
         private readonly IEmailBuilderService _emailBuilder;
         private readonly ISender _emailSender;
         private readonly ILogger<Worker> _logger;
 
-        public Worker(ISubscriber subscriber, IEmailBuilderService emailBuilder, ISender emailSender, ILogger<Worker> logger)
+        private const string EMAIL_REQUESTS_QUEUE = "email:requests";
+
+        public Worker(IQueueSubscriber queue, IEmailBuilderService emailBuilder, Mailing.ISender emailSender, ILogger<Worker> logger)
         {
-            _subscriber = subscriber ??
-                throw new ArgumentNullException(nameof(subscriber));
+            _queue = queue ??
+                throw new ArgumentNullException(nameof(queue));
             _emailBuilder = emailBuilder;
             _emailSender = emailSender;
             _logger = logger;
@@ -31,7 +33,7 @@ namespace StamAcasa.EmailService
         {
             _logger.LogInformation("Email service is starting...");
 
-            _subscriber.Subscribe("email:requests", async (request) =>
+            _queue.Subscribe(EMAIL_REQUESTS_QUEUE, async (request) =>
             {
                 try
                 {
@@ -69,7 +71,7 @@ namespace StamAcasa.EmailService
 
         public override void Dispose()
         {
-            _subscriber.Dispose();
+            _queue.Dispose();
 
             base.Dispose();
         }
