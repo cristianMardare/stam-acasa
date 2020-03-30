@@ -37,3 +37,9 @@ services:
         dockerfile: StamAcasa.IdentityServer/Dockerfile
     ports: 
       - 5001:80
+    
+  stamacasa.email:
+    image: ${DOCKER_REGISTRY-}stamacasaemail
+    build:
+        context: .
+        dockerfile: StamAcasa.EmailService/Dockerfile
